@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-deployment
+  labels:
+    app: MySQL
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: MySQL
+  template:
+    metadata:
+      labels:
+        app: MySQL
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:latest
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_ROOT_PASSWORD
+            - name: MYSQL_DATABASE
+              value: "monkdb"
+            - name: MYSQL_USER
+              value: "monk"
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_PASSWORD
+          volumeMounts:
+            - name: mysql-initdb  # Updated volume name to match 'volumes' section
+              mountPath: /docker-entrypoint-initdb.d
+          ports:
+            - containerPort: 3306
+      volumes:
+        - name: mysql-initdb  # Updated volume name to match 'volumeMounts' section
+          configMap:
+            name: mysql-initdb-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+spec:
+  selector:
+    app: MySQL
+  ports:
+    - port: 3306
+      targetPort: 3306  
