@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: two-tier-app-deployment
+  labels:
+    app: two-tier-app
+spec:
+  replicas: 2   # number of replicas we want of our app
+  selector:
+    matchLabels:
+      app: two-tier-app  # Corrected label name here
+  template:
+    metadata:
+      labels:
+        app: two-tier-app
+    spec:
+      containers:
+        - name: two-tier-app
+          image: monkage/flaskdecimage:latest
+          env:
+            - name: MYSQL_HOST
+              value: mysql-service
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_PASSWORD
+            - name: MYSQL_USER
+              value: "monk"
+            - name: MYSQL_DB
+              value: "monkdb"
+          ports:
+            - containerPort: 5000
+          imagePullPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: two-tier-app-service
+spec:
+  selector:
+    app: two-tier-app
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
